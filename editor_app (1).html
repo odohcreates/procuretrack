@@ -200,7 +200,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <script>
 const STATUSES = ['Submitted','Processing','Completed'];
-let API_URL = localStorage.getItem('procuretrack_api_url') || '';
+// Paste your deployed Apps Script /exec URL below so this editor connects
+// automatically. A locally-saved URL (via Connect box) always takes
+// priority over this default.
+const DEFAULT_API_URL = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
+
+let API_URL = localStorage.getItem('procuretrack_api_url')
+  || (DEFAULT_API_URL.startsWith('https://script.google.com') ? DEFAULT_API_URL : '');
 let requests = []; let editingId = null; let itemRowCount = 0;
 
 const sample = [
