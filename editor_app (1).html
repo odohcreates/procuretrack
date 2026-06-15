@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ProcureTrack — Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--navy:#0f1f3d;--blue:#2563eb;--bg:#f0f4f8;--card:#fff;--border:#dde3ed;--text:#1e293b;--muted:#64748b;--sm:#94a3b8;--green:#10b981;--red:#dc2626;--yellow:#fbbf24;--orange:#f97316}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:230px;background:var(--navy);position:fixed;top:0;left:0;bottom:0;color:#fff;padding:24px 14px}
+.brand{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px}
+.role{display:inline-block;margin-top:8px;background:var(--orange);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.nav{margin-top:28px;display:flex;flex-direction:column;gap:8px}
+.nav button{background:rgba(255,255,255,.06);border:0;color:rgba(255,255,255,.72);padding:11px 12px;border-radius:10px;text-align:left;font-weight:600;cursor:pointer}
+.nav button.active,.nav button:hover{background:var(--blue);color:#fff}
+.main{margin-left:230px;flex:1}
+.topbar{height:64px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:20}
+.topbar h1{font-family:'Space Grotesk',sans-serif;font-size:18px;color:var(--navy)}
+.content{padding:26px 32px}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(15,31,61,.04)}
+.connect{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;margin-bottom:20px}
+.connect input,.field input,.field select,.field textarea,.filter input,.filter select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;outline:none;background:#f8fafc}
+.connect input:focus,.field input:focus,.field select:focus,.field textarea:focus,.filter input:focus,.filter select:focus{border-color:var(--blue);background:#fff}
+.btn{border:0;border-radius:10px;padding:10px 15px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-light{background:#e5e7eb;color:#111827}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:6px 10px;font-size:12px}
+.btn-xs{padding:4px 8px;font-size:11px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi span{font-size:12px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.kpi strong{display:block;margin-top:6px;font-size:28px;font-family:'Space Grotesk',sans-serif;color:var(--navy)}
+.filter{display:grid;grid-template-columns:1fr 180px 160px 180px;gap:10px;margin-bottom:16px}
+.table-wrap{overflow:auto}
+.table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;font-size:13px}
+.table th{background:#f8fafc;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.4px;text-align:left;padding:12px;border-bottom:1px solid var(--border)}
+.table td{padding:12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.table tr:hover td{background:#f8fafc}
+.req-id{font-family:'Space Grotesk',sans-serif;color:var(--blue);font-weight:700}
+.badge{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-block}
+.b-sub{background:#fef9c3;color:#854d0e}.b-pro{background:#dbeafe;color:#1e3a8a}.b-com{background:#dcfce7;color:#166534}
+.p-po1{color:#dc2626;font-weight:800}.p-po2{color:#d97706;font-weight:700}
+.hidden{display:none!important}
+.view{display:none}.view.active{display:block}
+/* Modal */
+.modal-wrap{position:fixed;inset:0;background:rgba(15,31,61,.45);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-wrap.open{display:flex}
+.modal{background:#fff;border-radius:18px;width:min(780px,96vw);max-height:94vh;overflow:auto;display:flex;flex-direction:column}
+.modal-head,.modal-foot{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-foot{border-top:1px solid var(--border);border-bottom:0;justify-content:flex-end;gap:10px}
+.modal-body{padding:22px 24px;overflow:auto;flex:1}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field.full{grid-column:1/-1}
+.field label{display:block;font-size:12px;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:6px}
+.field textarea{min-height:70px;resize:vertical}
+/* Items table in modal */
+.items-section{margin-top:20px}
+.items-section h3{font-size:13px;text-transform:uppercase;color:var(--muted);font-weight:800;letter-spacing:.4px;margin-bottom:10px}
+.items-table{width:100%;border-collapse:collapse;font-size:13px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.items-table th{background:#f8fafc;color:var(--muted);font-size:11px;text-transform:uppercase;padding:9px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.items-table td{padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.items-table td input{width:100%;border:1.5px solid var(--border);border-radius:7px;padding:6px 8px;font-family:inherit;font-size:12px;background:#f8fafc;outline:none}
+.items-table td input:focus{border-color:var(--blue);background:#fff}
+.items-total{margin-top:10px;text-align:right;font-size:14px;font-weight:700;color:var(--navy)}
+.add-item-btn{margin-top:10px}
+/* Toast */
+.toast{position:fixed;right:24px;bottom:24px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;opacity:0;transform:translateY(8px);transition:.2s;z-index:100}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.err{background:var(--red)}.toast.ok{background:#059669}
+/* Dashboard */
+.dash{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bar-row{display:grid;grid-template-columns:120px 1fr 35px;gap:10px;align-items:center;margin:10px 0;font-size:13px}
+.bar-track{height:9px;background:#f1f5f9;border-radius:99px;overflow:hidden}
+.bar-fill{height:100%;background:var(--blue)}
+@media(max-width:900px){
+  .sidebar{display:none}.main{margin-left:0}
+  .kpis,.filter,.connect,.dash,.form-grid{grid-template-columns:1fr}
+  .content{padding:18px}.topbar{padding:0 18px}
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">⬡ ProcureTrack</div>
+    <span class="role">EDITOR</span>
+    <nav class="nav">
+      <button class="active" onclick="showView('tracker',this)">📋 All Requests</button>
+      <button onclick="showView('dashboard',this)">📊 Dashboard</button>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1 id="pageTitle">All Requests</h1>
+      <div>
+        <button class="btn btn-light" onclick="loadData()">Refresh</button>
+        <button class="btn btn-primary" onclick="openModal()">+ New Request</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="card connect">
+        <input id="apiUrl" placeholder="Paste Google Apps Script Web App URL here"/>
+        <button class="btn btn-primary" onclick="saveApiUrl()">Connect / Update</button>
+        <button class="btn btn-light" onclick="clearApiUrl()">Clear</button>
+      </div>
+
+      <section class="view active" id="view-tracker">
+        <div class="kpis" id="kpis"></div>
+        <div class="card filter">
+          <input id="search" placeholder="Search ID, name, department, item..." oninput="renderTable()"/>
+          <select id="statusFilter" onchange="renderTable()">
+            <option value="">All Status</option>
+            <option>Submitted</option><option>Processing</option><option>Completed</option>
+          </select>
+          <select id="priorityFilter" onchange="renderTable()">
+            <option value="">All Priority</option><option>PO1</option><option>PO2</option>
+          </select>
+          <select id="deptFilter" onchange="renderTable()"><option value="">All Departments</option></select>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Request ID</th><th>Date</th><th>Originator</th><th>Department</th>
+                <th>Vendor</th><th>Items</th><th>Total Value</th>
+                <th>Priority</th><th>Status</th><th>Days</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="view" id="view-dashboard">
+        <div class="kpis" id="dashKpis"></div>
+        <div class="dash">
+          <div class="card"><h3>Status Breakdown</h3><div id="statusBars"></div></div>
+          <div class="card"><h3>Department Breakdown</h3><div id="deptBars"></div></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-wrap" id="modalWrap" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">New Request</h2>
+      <button class="btn btn-light" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Originator Name *</label><input id="fOriginator"/></div>
+        <div class="field"><label>Recipient Email *</label><input id="fRecipientEmail" type="email"/></div>
+        <div class="field"><label>Department *</label><input id="fDept"/></div>
+        <div class="field"><label>Vendor / Supplier</label><input id="fVendor"/></div>
+        <div class="field"><label>Priority</label>
+          <select id="fPriority"><option>PO1</option><option>PO2</option></select>
+        </div>
+        <div class="field"><label>Status</label>
+          <select id="fStatus"><option>Submitted</option><option>Processing</option><option>Completed</option></select>
+        </div>
+        <div class="field"><label>Date Submitted</label><input id="fDate" type="date"/></div>
+        <div class="field"><label>Target Completion</label><input id="fTarget" type="date"/></div>
+        <div class="field full"><label>Remarks / Notes</label><textarea id="fRemarks"></textarea></div>
+      </div>
+
+      <!-- Line Items -->
+      <div class="items-section">
+        <h3>Line Items *</h3>
+        <table class="items-table" id="itemsTable">
+          <thead>
+            <tr>
+              <th style="width:36px">#</th>
+              <th>Description</th>
+              <th style="width:70px">Qty</th>
+              <th style="width:130px">Unit Price (₦)</th>
+              <th style="width:130px">Line Total (₦)</th>
+              <th style="width:36px"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+        <div class="items-total" id="grandTotal">Grand Total: ₦0</div>
+        <button class="btn btn-light btn-sm add-item-btn" onclick="addItemRow()">+ Add Item</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger hidden" id="deleteBtn" onclick="confirmDelete()">Delete</button>
+      <button class="btn btn-light" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRequest()">Save Request</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STATUSES = ['Submitted','Processing','Completed'];
+let API_URL = localStorage.getItem('procuretrack_api_url') || '';
+let requests = []; let editingId = null; let itemRowCount = 0;
+
+const sample = [
+  {id:'PRQ-2026-001',date:'2026-04-01',originator:'Amaka Okonkwo',recipientEmail:'amaka@example.com',dept:'Finance',vendor:'PaperPlus Ltd',priority:'PO1',status:'Completed',lastUpdated:'2026-04-10',target:'2026-04-12',daysOpen:33,totalItems:2,value:250000,remarks:'',
+   items:[{line:1,desc:'A4 Paper (Reams)',qty:20,unitPrice:3000,total:60000},{line:2,desc:'Pens & Markers',qty:30,unitPrice:500,total:15000}]},
+  {id:'PRQ-2026-002',date:'2026-04-05',originator:'Chidi Eze',recipientEmail:'chidi@example.com',dept:'IT',vendor:'TechZone Nigeria',priority:'PO1',status:'Processing',lastUpdated:'2026-04-20',target:'2026-04-25',daysOpen:29,totalItems:3,value:4500000,remarks:'Awaiting delivery',
+   items:[{line:1,desc:'Dell Latitude 5540',qty:3,unitPrice:1200000,total:3600000},{line:2,desc:'Laptop Bags',qty:3,unitPrice:15000,total:45000},{line:3,desc:'USB-C Docking Stations',qty:3,unitPrice:85000,total:255000}]}
+];
+
+window.onload = () => {
+  document.getElementById('apiUrl').value = API_URL;
+  if (API_URL) loadData();
+  else { requests = sample; renderTable(); toast('Demo mode: paste Apps Script URL to sync live.','err'); }
+};
+
+function today() { return new Date().toISOString().slice(0,10); }
+function money(n) { return '₦' + Number(n||0).toLocaleString(); }
+function badge(s) { return s==='Completed'?'b-com':s==='Processing'?'b-pro':'b-sub'; }
+function pcls(p) { return p==='PO1'?'p-po1':'p-po2'; }
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + (type==='err'?'err':type==='ok'?'ok':'');
+  setTimeout(()=>t.className='toast', 3500);
+}
+
+function saveApiUrl() {
+  const u = document.getElementById('apiUrl').value.trim();
+  if (!u.startsWith('https://script.google.com')) return toast('Paste a valid Apps Script Web App URL.','err');
+  API_URL = u; localStorage.setItem('procuretrack_api_url', u);
+  loadData(); toast('Connected. Loading data...','ok');
+}
+function clearApiUrl() {
+  localStorage.removeItem('procuretrack_api_url'); API_URL = '';
+  document.getElementById('apiUrl').value = '';
+  requests = sample; renderTable(); toast('URL cleared. Demo data showing.','err');
+}
+
+function api(params) {
+  return new Promise((resolve, reject) => {
+    if (!API_URL) return reject(new Error('No API URL'));
+    const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    params.callback = cb; params._ = Date.now();
+    const s = document.createElement('script');
+    window[cb] = data => { resolve(data); delete window[cb]; s.remove(); };
+    s.onerror = () => { reject(new Error('Could not connect to Apps Script')); delete window[cb]; s.remove(); };
+    s.src = API_URL + '?' + new URLSearchParams(params).toString();
+    document.body.appendChild(s);
+  });
+}
+
+async function loadData() {
+  try {
+    const data = await api({action:'getAll'});
+    if (Array.isArray(data)) { requests = data; renderTable(); toast('Live data loaded.','ok'); }
+    else toast(data.error || 'Could not load data.','err');
+  } catch(e) { toast(e.message,'err'); }
+}
+
+function renderKPIs(elId) {
+  const open = requests.filter(r=>r.status!=='Completed').length;
+  const completed = requests.filter(r=>r.status==='Completed').length;
+  const total = requests.reduce((s,r)=>s+Number(r.value||0),0);
+  const po1 = requests.filter(r=>r.priority==='PO1').length;
+  document.getElementById(elId).innerHTML =
+    [['Total Requests',requests.length],['Open',open],['Completed',completed],['Total Value',money(total)]]
+    .map(x=>`<div class="card kpi"><span>${x[0]}</span><strong>${x[1]}</strong></div>`).join('');
+}
+
+function renderTable() {
+  renderKPIs('kpis');
+  const depts = [...new Set(requests.map(r=>r.dept).filter(Boolean))].sort();
+  const df = document.getElementById('deptFilter'), old = df.value;
+  df.innerHTML = '<option value="">All Departments</option>' + depts.map(d=>`<option ${d===old?'selected':''}>${d}</option>`).join('');
+  const q  = document.getElementById('search').value.toLowerCase();
+  const st = document.getElementById('statusFilter').value;
+  const pr = document.getElementById('priorityFilter').value;
+  const dp = df.value;
+  const filtered = requests.filter(r =>
+    (!q  || [r.id,r.originator,r.recipientEmail,r.dept,r.vendor,(r.items||[]).map(i=>i.desc).join(' ')].join(' ').toLowerCase().includes(q)) &&
+    (!st || r.status===st) &&
+    (!pr || r.priority===pr) &&
+    (!dp || r.dept===dp)
+  );
+  document.getElementById('tbody').innerHTML = filtered.length
+    ? filtered.map(r => `<tr>
+        <td><span class="req-id">${r.id}</span></td>
+        <td>${r.date||''}</td>
+        <td>${r.originator||''}</td>
+        <td>${r.dept||''}</td>
+        <td>${r.vendor||''}</td>
+        <td>${r.totalItems||0} item${(r.totalItems||0)===1?'':'s'}</td>
+        <td>${money(r.value)}</td>
+        <td><span class="${pcls(r.priority)}">${r.priority||''}</span></td>
+        <td>
+          <select onchange="quickStatus('${r.id}',this.value)">
+            ${STATUSES.map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td>${r.daysOpen||''}</td>
+        <td><button class="btn btn-light btn-sm" onclick="openModal('${r.id}')">Edit</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:28px">No records found.</td></tr>';
+}
+
+async function quickStatus(id, status) {
+  const r = requests.find(x=>x.id===id);
+  if (!r) return;
+  const old = r.status; r.status = status; renderTable();
+  if (API_URL) {
+    const res = await api({action:'update', id, status});
+    if (res.success) { toast('Status updated.','ok'); loadData(); }
+    else { r.status = old; renderTable(); toast(res.error||'Update failed','err'); }
+  } else toast('Demo update only.','err');
+}
+
+// ── Items table ───────────────────────────────────────────────
+function addItemRow(item={}) {
+  itemRowCount++;
+  const n = itemRowCount;
+  const tbody = document.getElementById('itemsBody');
+  const tr = document.createElement('tr');
+  tr.id = 'irow-' + n;
+  tr.innerHTML = `
+    <td style="text-align:center;color:var(--muted)">${tbody.children.length+1}</td>
+    <td><input placeholder="Item / service description" value="${item.desc||''}" oninput="recalcRow(${n})"/></td>
+    <td><input type="number" min="0" placeholder="1" value="${item.qty||1}" oninput="recalcRow(${n})" style="text-align:right"/></td>
+    <td><input type="number" min="0" placeholder="0" value="${item.unitPrice||0}" oninput="recalcRow(${n})" style="text-align:right"/></td>
+    <td><input type="number" readonly value="${item.total||0}" id="itotal-${n}" style="background:#f0f4f8;text-align:right"/></td>
+    <td><button class="btn btn-xs btn-danger" onclick="removeItemRow(${n})">✕</button></td>`;
+  tbody.appendChild(tr);
+  updateGrandTotal();
+}
+
+function removeItemRow(n) {
+  const row = document.getElementById('irow-'+n);
+  if (row) row.remove();
+  renumberItems();
+  updateGrandTotal();
+}
+
+function renumberItems() {
+  document.querySelectorAll('#itemsBody tr').forEach((tr,i)=>{
+    tr.cells[0].textContent = i+1;
+  });
+}
+
+function recalcRow(n) {
+  const row = document.getElementById('irow-'+n);
+  if (!row) return;
+  const qty   = parseFloat(row.cells[2].querySelector('input').value)||0;
+  const price = parseFloat(row.cells[3].querySelector('input').value)||0;
+  const total = qty * price;
+  document.getElementById('itotal-'+n).value = total;
+  updateGrandTotal();
+}
+
+function updateGrandTotal() {
+  let sum = 0;
+  document.querySelectorAll('#itemsBody tr').forEach(tr => {
+    const inp = tr.cells[4] && tr.cells[4].querySelector('input');
+    if (inp) sum += parseFloat(inp.value)||0;
+  });
+  document.getElementById('grandTotal').textContent = 'Grand Total: ₦' + sum.toLocaleString();
+}
+
+function getItemsFromTable() {
+  const rows = document.querySelectorAll('#itemsBody tr');
+  const items = [];
+  rows.forEach((tr, i) => {
+    const desc      = tr.cells[1].querySelector('input').value.trim();
+    const qty       = parseFloat(tr.cells[2].querySelector('input').value)||0;
+    const unitPrice = parseFloat(tr.cells[3].querySelector('input').value)||0;
+    const total     = qty * unitPrice;
+    if (desc) items.push({line:i+1, desc, qty, unitPrice, total});
+  });
+  return items;
+}
+
+// ── Modal open/close ──────────────────────────────────────────
+function openModal(id=null) {
+  editingId = id;
+  const r = id ? requests.find(x=>x.id===id) : {};
+  document.getElementById('modalTitle').textContent = id ? 'Edit ' + id : 'New Procurement Request';
+  document.getElementById('deleteBtn').classList.toggle('hidden', !id);
+
+  document.getElementById('fOriginator').value     = r.originator||'';
+  document.getElementById('fRecipientEmail').value = r.recipientEmail||'';
+  document.getElementById('fDept').value           = r.dept||'';
+  document.getElementById('fVendor').value         = r.vendor||'';
+  document.getElementById('fPriority').value       = r.priority||'PO1';
+  document.getElementById('fStatus').value         = r.status||'Submitted';
+  document.getElementById('fDate').value           = r.date||today();
+  document.getElementById('fTarget').value         = r.target||'';
+  document.getElementById('fRemarks').value        = r.remarks||'';
+
+  // Reset items table
+  document.getElementById('itemsBody').innerHTML = '';
+  itemRowCount = 0;
+  const items = r.items && r.items.length ? r.items : [{desc:'',qty:1,unitPrice:0,total:0}];
+  items.forEach(it => addItemRow(it));
+
+  document.getElementById('modalWrap').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalWrap').classList.remove('open');
+  editingId = null;
+}
+
+// ── Save ──────────────────────────────────────────────────────
+async function saveRequest() {
+  const d = {
+    originator    : document.getElementById('fOriginator').value.trim(),
+    recipientEmail: document.getElementById('fRecipientEmail').value.trim(),
+    dept          : document.getElementById('fDept').value.trim(),
+    vendor        : document.getElementById('fVendor').value.trim(),
+    priority      : document.getElementById('fPriority').value,
+    status        : document.getElementById('fStatus').value,
+    date          : document.getElementById('fDate').value,
+    target        : document.getElementById('fTarget').value,
+    remarks       : document.getElementById('fRemarks').value.trim()
+  };
+  const items = getItemsFromTable();
+
+  if (!d.originator || !d.recipientEmail || !d.dept) return toast('Fill originator, email and department.','err');
+  if (!items.length) return toast('Add at least one line item.','err');
+
+  closeModal();
+
+  if (API_URL) {
+    const res = await api({action: editingId?'update':'add', id:editingId||'', ...d, items: JSON.stringify(items)});
+    if (res.success) { toast(editingId ? 'Request updated.' : 'Request created. Email sent.','ok'); loadData(); }
+    else toast(res.error||'Save failed','err');
+  } else {
+    const total = items.reduce((s,it)=>s+it.total, 0);
+    if (editingId) {
+      requests = requests.map(r => r.id===editingId ? {...r,...d,items,value:total,totalItems:items.length} : r);
+    } else {
+      const newId = 'PRQ-'+new Date().getFullYear()+'-'+String(requests.length+1).padStart(3,'0');
+      requests.unshift({id:newId,...d,items,value:total,totalItems:items.length,daysOpen:0});
+    }
+    renderTable(); toast('Saved in demo only.','err');
+  }
+}
+
+async function confirmDelete() {
+  if (!editingId || !confirm('Delete '+editingId+'?')) return;
+  const id = editingId; closeModal();
+  if (API_URL) {
+    const res = await api({action:'delete', id});
+    if (res.success) { toast('Deleted.','ok'); loadData(); }
+    else toast(res.error||'Delete failed','err');
+  } else { requests = requests.filter(r=>r.id!==id); renderTable(); toast('Deleted in demo only.','err'); }
+}
+
+// ── Navigation ────────────────────────────────────────────────
+function showView(v, btn) {
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pageTitle').textContent = v==='dashboard' ? 'Dashboard' : 'All Requests';
+  if (v==='dashboard') renderDashboard();
+}
+
+function renderDashboard() {
+  renderKPIs('dashKpis');
+  const total = requests.length||1;
+  document.getElementById('statusBars').innerHTML = STATUSES.map(s=>{
+    const c = requests.filter(r=>r.status===s).length;
+    return `<div class="bar-row"><span>${s}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/total*100)}%"></div></div><strong>${c}</strong></div>`;
+  }).join('');
+  const depts = [...new Set(requests.map(r=>r.dept).filter(Boolean))].sort();
+  document.getElementById('deptBars').innerHTML = depts.map(d=>{
+    const c = requests.filter(r=>r.dept===d).length;
+    return `<div class="bar-row"><span>${d}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/total*100)}%;background:#10b981"></div></div><strong>${c}</strong></div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

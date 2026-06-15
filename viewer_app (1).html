@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ProcureTrack — Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--navy:#0f1f3d;--blue:#2563eb;--teal:#0d9488;--bg:#f0f4f8;--card:#fff;--border:#dde3ed;--text:#1e293b;--muted:#64748b;--sm:#94a3b8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{height:64px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 36px}
+.brand{font-family:'Space Grotesk',sans-serif;font-weight:700}
+.badge-head{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:5px 12px;border-radius:999px;font-size:12px}
+.hero{background:linear-gradient(135deg,#1a3a6b,#0f1f3d);text-align:center;padding:48px 24px;color:#fff}
+.hero h1{font-family:'Space Grotesk',sans-serif;font-size:32px;margin-bottom:8px}
+.hero p{color:rgba(255,255,255,.62);margin-bottom:22px}
+.search-card{background:#fff;border-radius:16px;max-width:650px;margin:0 auto;padding:22px;box-shadow:0 12px 38px rgba(0,0,0,.18)}
+.search-row{display:flex;gap:10px}
+.search-row input,.connect input{flex:1;padding:13px 15px;border:2px solid var(--border);border-radius:12px;font-family:inherit;outline:none}
+.search-row input:focus,.connect input:focus{border-color:var(--blue)}
+button{border:0;border-radius:12px;padding:12px 18px;font-weight:700;font-family:inherit;cursor:pointer}
+.primary{background:var(--blue);color:#fff}
+.light{background:#e5e7eb;color:#111827}
+.content{max-width:960px;margin:0 auto;padding:28px 22px}
+.connect{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:14px;padding:15px;margin-bottom:20px}
+.connect-row{display:flex;gap:8px;margin-top:9px}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 5px 18px rgba(15,31,61,.05)}
+.result-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.req-id{font-family:'Space Grotesk',sans-serif;font-size:20px;color:var(--navy);font-weight:700}
+.muted{color:var(--muted);font-size:13px}
+.badge{padding:6px 14px;border-radius:999px;font-size:12px;font-weight:800;display:inline-block}
+.b-sub{background:#fef9c3;color:#854d0e}.b-pro{background:#dbeafe;color:#1e3a8a}.b-com{background:#dcfce7;color:#166534}
+.p-po1{background:#fee2e2;color:#991b1b}.p-po2{background:#ffedd5;color:#9a3412}
+.head-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+/* Share button */
+.share-btn{background:none;border:1.5px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s}
+.share-btn:hover{border-color:var(--blue);color:var(--blue)}
+.share-btn.copied{background:#dcfce7;border-color:#16a34a;color:#16a34a}
+/* Timeline */
+.timeline{padding:24px;border-bottom:1px solid #f1f5f9}
+.steps{display:flex;align-items:flex-start}
+.step{flex:1;text-align:center;position:relative}
+.step:not(:last-child)::after{content:'';position:absolute;top:14px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:#dde3ed}
+.circle{width:28px;height:28px;border-radius:50%;border:2px solid #dde3ed;background:#fff;display:inline-flex;align-items:center;justify-content:center;position:relative;z-index:2;font-size:12px}
+.step.done .circle{background:var(--teal);border-color:var(--teal);color:#fff}
+.step.current .circle{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(37,99,235,.14)}
+.step.done:not(:last-child)::after,.step.current:not(:last-child)::after{background:var(--teal)}
+.label{font-size:11px;margin-top:8px;color:var(--muted);font-weight:700}
+/* Info grid */
+.grid{padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.item.full{grid-column:1/-1}
+.item span{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--sm);font-weight:800}
+.item strong{display:block;margin-top:4px;font-size:14px}
+/* Line items table */
+.items-section{margin:0 24px 24px}
+.items-section h4{font-size:12px;text-transform:uppercase;color:var(--muted);font-weight:800;letter-spacing:.4px;margin-bottom:10px}
+.items-tbl{width:100%;border-collapse:collapse;font-size:13px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.items-tbl th{background:#f8fafc;color:var(--muted);font-size:11px;text-transform:uppercase;padding:9px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.items-tbl td{padding:9px 12px;border-bottom:1px solid #f1f5f9}
+.items-tbl tr:last-child td{border-bottom:0}
+.items-tbl .num{text-align:right}
+.grand-row td{font-weight:700;background:#f8fafc;font-size:13px}
+/* Remarks */
+.remarks{margin:0 24px 24px;background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:14px;line-height:1.6}
+/* Active list */
+.list{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.list h2{font-family:'Space Grotesk',sans-serif;font-size:16px;padding:16px 20px;border-bottom:1px solid var(--border)}
+.row{display:grid;grid-template-columns:125px 1fr 100px 110px 55px;gap:10px;align-items:center;padding:14px 20px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:13px}
+.row:hover{background:#f8fafc}
+.empty,.error{text-align:center;padding:36px;color:var(--muted)}
+.error{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:12px;margin-bottom:18px}
+.hidden{display:none}
+/* Toast */
+.toast{position:fixed;right:22px;bottom:22px;background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;opacity:0;transform:translateY(6px);transition:.2s;z-index:100;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:700px){
+  .search-row,.connect-row,.grid{display:flex;flex-direction:column}
+  .row{grid-template-columns:1fr 1fr}
+  .header{padding:0 18px}.hero h1{font-size:26px}
+  .items-tbl th:nth-child(4),.items-tbl td:nth-child(4){display:none}
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<header class="header">
+  <div class="brand">⬡ ProcureTrack</div>
+  <span class="badge-head">View Only</span>
+</header>
+
+<section class="hero">
+  <h1>Track Your Procurement Request</h1>
+  <p>Search by Request ID or originator name — or open a shared link to jump straight to a request.</p>
+  <div class="search-card">
+    <div class="search-row">
+      <input id="query" placeholder="PRQ-2026-001 or your name" onkeydown="if(event.key==='Enter')search()"/>
+      <button class="primary" onclick="search()">Track</button>
+    </div>
+  </div>
+</section>
+
+<main class="content">
+  <div class="connect" id="connectBox">
+    <strong>Connect Google Sheet</strong><br/>
+    Paste your deployed Apps Script Web App URL. Saved in this browser only.
+    <div class="connect-row">
+      <input id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec"/>
+      <button class="primary" onclick="saveApiUrl()">Connect / Update</button>
+      <button class="light" onclick="clearApiUrl()">Clear</button>
+    </div>
+  </div>
+  <div id="results"></div>
+  <div class="list">
+    <h2>Active Requests <span id="count" class="muted"></span></h2>
+    <div id="activeList"></div>
+  </div>
+</main>
+
+<script>
+const STATUSES = ['Submitted','Processing','Completed'];
+let API_URL = localStorage.getItem('procuretrack_api_url') || '';
+let allRequests = [];
+
+const sample = [
+  {id:'PRQ-2026-001',date:'2026-04-01',originator:'Amaka Okonkwo',recipientEmail:'amaka@example.com',dept:'Finance',vendor:'PaperPlus Ltd',priority:'PO1',status:'Completed',lastUpdated:'2026-04-10',target:'2026-04-12',daysOpen:33,totalItems:2,value:75000,remarks:'',
+   items:[{line:1,desc:'A4 Paper (Reams)',qty:20,unitPrice:3000,total:60000},{line:2,desc:'Pens & Markers',qty:30,unitPrice:500,total:15000}]},
+  {id:'PRQ-2026-002',date:'2026-04-05',originator:'Chidi Eze',recipientEmail:'chidi@example.com',dept:'IT',vendor:'TechZone Nigeria',priority:'PO1',status:'Processing',lastUpdated:'2026-04-20',target:'2026-04-25',daysOpen:29,totalItems:3,value:3900000,remarks:'Awaiting delivery',
+   items:[{line:1,desc:'Dell Latitude 5540',qty:3,unitPrice:1200000,total:3600000},{line:2,desc:'Laptop Bags',qty:3,unitPrice:15000,total:45000},{line:3,desc:'USB-C Docking Stations',qty:3,unitPrice:85000,total:255000}]}
+];
+
+window.onload = () => {
+  document.getElementById('apiUrl').value = API_URL;
+  if (API_URL) loadData();
+  else { allRequests = sample; renderList(); showNotice('Demo mode: paste Apps Script URL to load your live sheet.'); }
+
+  // Auto-open request if ?id= is in the URL
+  const urlId = new URLSearchParams(window.location.search).get('id');
+  if (urlId) {
+    document.getElementById('query').value = urlId;
+    // search after data loads (give 200ms for demo, or loadData handles it)
+    if (!API_URL) setTimeout(() => search(), 100);
+    // for live data, search() is called after loadData resolves
+    window._pendingSearch = urlId;
+  }
+};
+
+function saveApiUrl() {
+  const u = document.getElementById('apiUrl').value.trim();
+  if (!u.startsWith('https://script.google.com')) return showNotice('Please paste a valid Apps Script Web App URL.');
+  API_URL = u; localStorage.setItem('procuretrack_api_url', u); loadData();
+}
+function clearApiUrl() {
+  localStorage.removeItem('procuretrack_api_url'); API_URL = '';
+  document.getElementById('apiUrl').value = '';
+  allRequests = sample; renderList(); showNotice('URL cleared. Demo data showing.');
+}
+
+function api(params) {
+  return new Promise((resolve, reject) => {
+    const cb = 'viewer_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    params.callback = cb; params._ = Date.now();
+    const s = document.createElement('script');
+    window[cb] = data => { resolve(data); delete window[cb]; s.remove(); };
+    s.onerror = () => { reject(new Error('Could not connect to Apps Script')); delete window[cb]; s.remove(); };
+    s.src = API_URL + '?' + new URLSearchParams(params).toString();
+    document.body.appendChild(s);
+  });
+}
+
+async function loadData() {
+  try {
+    const data = await api({action:'getAll'});
+    if (Array.isArray(data)) {
+      allRequests = data; renderList(); document.getElementById('results').innerHTML = '';
+      if (window._pendingSearch) { document.getElementById('query').value = window._pendingSearch; search(); window._pendingSearch = null; }
+    } else showNotice(data.error || 'Could not load data from sheet.');
+  } catch(e) { allRequests = sample; renderList(); showNotice(e.message + ' Demo data showing.'); }
+}
+
+function showNotice(msg) { document.getElementById('results').innerHTML = `<div class="error">${msg}</div>`; }
+function money(n) { return '₦' + Number(n||0).toLocaleString(); }
+function bCls(s) { return s==='Completed'?'b-com':s==='Processing'?'b-pro':'b-sub'; }
+function pCls(p) { return p==='PO1'?'p-po1':'p-po2'; }
+
+function search() {
+  const q = document.getElementById('query').value.trim().toLowerCase();
+  if (!q) return;
+  const found = allRequests.filter(r =>
+    [r.id, r.originator, r.recipientEmail].join(' ').toLowerCase().includes(q)
+  );
+  document.getElementById('results').innerHTML = found.length
+    ? found.map(card).join('')
+    : `<div class="error">No request found for <strong>${q}</strong>.</div>`;
+  if (found.length) window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ── Share link ────────────────────────────────────────────────
+function shareLink(id, btnEl) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('id', id);
+  navigator.clipboard.writeText(url.toString()).then(() => {
+    btnEl.textContent = '✓ Link copied!';
+    btnEl.classList.add('copied');
+    setTimeout(() => { btnEl.textContent = '🔗 Copy share link'; btnEl.classList.remove('copied'); }, 2200);
+  }).catch(() => {
+    // Fallback for browsers without clipboard API
+    prompt('Copy this link:', url.toString());
+  });
+}
+
+// ── Item table HTML ───────────────────────────────────────────
+function itemsTable(items) {
+  if (!items || !items.length) return '<p style="color:var(--muted);font-size:13px">No line items recorded.</p>';
+  const rows = items.map(it => `
+    <tr>
+      <td>${it.line}</td>
+      <td>${it.desc}</td>
+      <td class="num">${it.qty}</td>
+      <td class="num">${money(it.unitPrice)}</td>
+      <td class="num">${money(it.total)}</td>
+    </tr>`).join('');
+  const grand = items.reduce((s,it) => s+Number(it.total||0), 0);
+  return `<table class="items-tbl">
+    <thead>
+      <tr>
+        <th style="width:36px">#</th>
+        <th>Description</th>
+        <th class="num" style="width:60px">Qty</th>
+        <th class="num" style="width:130px">Unit Price</th>
+        <th class="num" style="width:130px">Total</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr class="grand-row">
+        <td colspan="4" style="text-align:right;padding:9px 12px">Grand Total</td>
+        <td class="num" style="padding:9px 12px">${money(grand)}</td>
+      </tr>
+    </tfoot>
+  </table>`;
+}
+
+// ── Request card ──────────────────────────────────────────────
+function card(r) {
+  const idx   = STATUSES.indexOf(r.status);
+  const steps = STATUSES.map((s,i) =>
+    `<div class="step ${i<idx?'done':i===idx?'current':''}">
+      <div class="circle">${i<idx?'✓':i===idx?'●':''}</div>
+      <div class="label">${s}</div>
+    </div>`
+  ).join('');
+
+  return `<div class="card" id="card-${r.id}">
+    <div class="result-head">
+      <div>
+        <div class="req-id">${r.id}</div>
+        <div class="muted">Submitted by ${r.originator||'-'} · ${r.dept||'-'} · ${r.date||'-'}</div>
+      </div>
+      <div class="head-right">
+        <div>
+          <span class="badge ${bCls(r.status)}">${r.status||'Submitted'}</span>
+          &nbsp;<span class="badge ${pCls(r.priority)}">${r.priority||'PO1'}</span>
+        </div>
+        <button class="share-btn" onclick="shareLink('${r.id}', this)">🔗 Copy share link</button>
+      </div>
+    </div>
+    <div class="timeline"><div class="steps">${steps}</div></div>
+    <div class="grid">
+      <div class="item"><span>Vendor / Supplier</span><strong>${r.vendor||'-'}</strong></div>
+      <div class="item"><span>Target Completion</span><strong>${r.target||'-'}</strong></div>
+      <div class="item"><span>Total Items</span><strong>${r.totalItems||0}</strong></div>
+      <div class="item"><span>Total Value</span><strong>${money(r.value)}</strong></div>
+      <div class="item"><span>Days Open</span><strong>${r.daysOpen||'-'}</strong></div>
+      <div class="item"><span>Last Updated</span><strong>${r.lastUpdated||'-'}</strong></div>
+    </div>
+    <div class="items-section">
+      <h4>Line Items</h4>
+      ${itemsTable(r.items)}
+    </div>
+    <div class="remarks"><strong>Remarks / Notes</strong><br/>${r.remarks||'No remarks yet.'}</div>
+  </div>`;
+}
+
+// ── Active requests list ──────────────────────────────────────
+function renderList() {
+  const active = allRequests.filter(r => r.status !== 'Completed');
+  document.getElementById('count').textContent = `(${active.length})`;
+  document.getElementById('activeList').innerHTML = active.length
+    ? active.map(r => `
+        <div class="row" onclick="document.getElementById('query').value='${r.id}';search();window.scrollTo({top:0,behavior:'smooth'})">
+          <strong class="req-id">${r.id}</strong>
+          <span>${(r.items||[]).map(i=>i.desc).join(', ').slice(0,60) || '-'}</span>
+          <span>${r.dept||'-'}</span>
+          <span class="badge ${bCls(r.status)}">${r.status}</span>
+          <span>${r.daysOpen||0}d</span>
+        </div>`).join('')
+    : '<div class="empty">No active requests.</div>';
+}
+</script>
+</body>
+</html>
