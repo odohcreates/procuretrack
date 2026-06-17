@@ -70,6 +70,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .toast{position:fixed;right:24px;bottom:24px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;opacity:0;transform:translateY(8px);transition:.2s;z-index:100}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.err{background:var(--red)}.toast.ok{background:#059669}
+/* Scan */
+.scan-btn{background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;display:flex;align-items:center;gap:6px}
+.scan-btn:hover{opacity:.9}
+.scan-overlay{position:absolute;inset:0;background:rgba(255,255,255,.93);border-radius:18px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:10;padding:32px}
+.scan-overlay.active{display:flex}
+.scan-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-status{font-size:14px;font-weight:600;color:var(--navy);text-align:center}
+.scan-preview{max-width:200px;max-height:130px;border-radius:10px;border:2px solid var(--border);object-fit:cover}
+.scan-drop{border:2px dashed var(--border);border-radius:12px;padding:32px 24px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;transition:.15s;width:100%;max-width:400px}
+.scan-drop:hover{border-color:var(--blue);color:var(--blue);background:#f0f4ff}
+.scan-drop input{display:none}
+.modal{position:relative}
 /* Dashboard */
 .dash{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .bar-row{display:grid;grid-template-columns:120px 1fr 35px;gap:10px;align-items:center;margin:10px 0;font-size:13px}
@@ -86,7 +99,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="toast" id="toast"></div>
 <div class="layout">
   <aside class="sidebar">
-    <div class="brand">⬡ FENOG ProcureTrack</div>
+    <div class="brand">⬡ ProcureTrack</div>
     <span class="role">EDITOR</span>
     <nav class="nav">
       <button class="active" onclick="showView('tracker',this)">📋 All Requests</button>
@@ -149,9 +162,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- Modal -->
 <div class="modal-wrap" id="modalWrap" onclick="if(event.target===this)closeModal()">
   <div class="modal">
+    <!-- Scan overlay shown while processing -->
+    <div class="scan-overlay" id="scanOverlay">
+      <div id="scanStage1">
+        <p style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;text-align:center">📷 Scan Requisition Form</p>
+        <label class="scan-drop" id="scanDrop">
+          <input type="file" id="scanInput" accept="image/*" capture="environment" onchange="handleScanFile(event)"/>
+          <div style="font-size:32px;margin-bottom:8px">📄</div>
+          <strong style="color:var(--navy)">Tap to take a photo or upload an image</strong><br/>
+          <span style="font-size:12px">JPG, PNG, WEBP — any paper requisition form</span>
+        </label>
+        <button class="btn btn-light btn-sm" onclick="closeScan()" style="width:100%;margin-top:8px">Cancel</button>
+      </div>
+      <div id="scanStage2" style="display:none;align-items:center;flex-direction:column;gap:14px">
+        <img id="scanPreview" class="scan-preview" src="" alt=""/>
+        <div class="scan-spinner"></div>
+        <div class="scan-status" id="scanStatus">Reading form with AI…</div>
+      </div>
+    </div>
+
     <div class="modal-head">
       <h2 id="modalTitle">New Request</h2>
-      <button class="btn btn-light" onclick="closeModal()">×</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="scan-btn" onclick="openScan()">📷 Scan Form</button>
+        <button class="btn btn-light" onclick="closeModal()">×</button>
+      </div>
     </div>
     <div class="modal-body">
       <div class="form-grid">
@@ -203,7 +238,7 @@ const STATUSES = ['Submitted','Processing','Completed'];
 // Paste your deployed Apps Script /exec URL below so this editor connects
 // automatically. A locally-saved URL (via Connect box) always takes
 // priority over this default.
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbz5VpMTYBmB_vids1X_u311U-LCLu4yXpn_ONnG16a7Buy6MHOEdZyDdfCxZ9GEFYtB/exec';
+const DEFAULT_API_URL = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
 
 let API_URL = localStorage.getItem('procuretrack_api_url')
   || (DEFAULT_API_URL.startsWith('https://script.google.com') ? DEFAULT_API_URL : '');
@@ -462,7 +497,116 @@ async function confirmDelete() {
   } else { requests = requests.filter(r=>r.id!==id); renderTable(); toast('Deleted in demo only.','err'); }
 }
 
-// ── Navigation ────────────────────────────────────────────────
+// ── Scan / OCR ────────────────────────────────────────────────
+function openScan() {
+  document.getElementById('scanOverlay').classList.add('active');
+  document.getElementById('scanStage1').style.display = '';
+  document.getElementById('scanStage2').style.display = 'none';
+  document.getElementById('scanInput').value = '';
+}
+
+function closeScan() {
+  document.getElementById('scanOverlay').classList.remove('active');
+}
+
+function handleScanFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => runScan(ev.target.result, file.type);
+  reader.readAsDataURL(file);
+}
+
+async function runScan(dataUrl, mimeType) {
+  // Show spinner stage
+  document.getElementById('scanStage1').style.display = 'none';
+  const stage2 = document.getElementById('scanStage2');
+  stage2.style.display = 'flex';
+  document.getElementById('scanPreview').src = dataUrl;
+  document.getElementById('scanStatus').textContent = 'Reading form with AI…';
+
+  const base64 = dataUrl.split(',')[1];
+  const validType = ['image/jpeg','image/png','image/gif','image/webp'].includes(mimeType)
+    ? mimeType : 'image/jpeg';
+
+  const prompt = `You are reading a paper procurement / purchase requisition form.
+Extract all available fields and return ONLY a JSON object with these exact keys:
+{
+  "originator": "",
+  "recipientEmail": "",
+  "dept": "",
+  "vendor": "",
+  "priority": "PO1",
+  "date": "YYYY-MM-DD",
+  "target": "YYYY-MM-DD",
+  "remarks": "",
+  "items": [
+    { "desc": "", "qty": 1, "unitPrice": 0 }
+  ]
+}
+Rules:
+- priority must be "PO1" or "PO2" only. Default to "PO1" if unclear.
+- All dates in YYYY-MM-DD format. Leave blank "" if not found.
+- items: extract every line item you can see. qty and unitPrice should be numbers (no currency symbols).
+- If a field is not visible, use an empty string "".
+- Return ONLY the JSON, no explanation, no markdown.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: validType, data: base64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error?.message || 'API error');
+
+    document.getElementById('scanStatus').textContent = 'Filling in fields…';
+    const raw = data.content.find(b => b.type === 'text')?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    // Fill form fields
+    if (parsed.originator)     document.getElementById('fOriginator').value     = parsed.originator;
+    if (parsed.recipientEmail) document.getElementById('fRecipientEmail').value = parsed.recipientEmail;
+    if (parsed.dept)           document.getElementById('fDept').value           = parsed.dept;
+    if (parsed.vendor)         document.getElementById('fVendor').value         = parsed.vendor;
+    if (parsed.priority)       document.getElementById('fPriority').value       = parsed.priority;
+    if (parsed.date)           document.getElementById('fDate').value           = parsed.date;
+    if (parsed.target)         document.getElementById('fTarget').value         = parsed.target;
+    if (parsed.remarks)        document.getElementById('fRemarks').value        = parsed.remarks;
+
+    // Fill line items
+    if (parsed.items && parsed.items.length) {
+      document.getElementById('itemsBody').innerHTML = '';
+      itemRowCount = 0;
+      parsed.items.forEach(it => addItemRow({
+        desc: it.desc || '',
+        qty: Number(it.qty) || 1,
+        unitPrice: Number(it.unitPrice) || 0,
+        total: (Number(it.qty)||1) * (Number(it.unitPrice)||0)
+      }));
+    }
+
+    closeScan();
+    toast('Form scanned — please review and confirm fields.', 'ok');
+
+  } catch(err) {
+    closeScan();
+    toast('Scan failed: ' + err.message, 'err');
+  }
+}
+
 function showView(v, btn) {
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
