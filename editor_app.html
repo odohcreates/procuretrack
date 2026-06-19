@@ -238,7 +238,7 @@ const STATUSES = ['Submitted','Processing','Completed'];
 // Paste your deployed Apps Script /exec URL below so this editor connects
 // automatically. A locally-saved URL (via Connect box) always takes
 // priority over this default.
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycby-w2bUZWmaKjcc3x5pbQFyUcgXMa4rmhvx2y6MenOvfZRY2mPYKaE1wWPnvYivuuai/exec';
+const DEFAULT_API_URL = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
 
 let API_URL = localStorage.getItem('procuretrack_api_url')
   || (DEFAULT_API_URL.startsWith('https://script.google.com') ? DEFAULT_API_URL : '');
@@ -289,6 +289,21 @@ function api(params) {
     s.onerror = () => { reject(new Error('Could not connect to Apps Script')); delete window[cb]; s.remove(); };
     s.src = API_URL + '?' + new URLSearchParams(params).toString();
     document.body.appendChild(s);
+  });
+}
+
+// POST-based call for large payloads (e.g. scan images) — avoids GET URL length limits
+function apiPost(params) {
+  return new Promise((resolve, reject) => {
+    if (!API_URL) return reject(new Error('No API URL'));
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+      body: JSON.stringify(params)
+    })
+      .then(r => r.json())
+      .then(resolve)
+      .catch(() => reject(new Error('Could not connect to Apps Script')));
   });
 }
 
@@ -536,8 +551,8 @@ async function runScan(dataUrl, mimeType) {
   }
 
   try {
-    // Route through Apps Script — Gemini call happens server-side, key stays in Code.gs
-    const res = await api({ action: 'scan', imageBase64: base64, mediaType: validType });
+    // Route through Apps Script via POST — Gemini call happens server-side, key stays in Code.gs
+    const res = await apiPost({ action: 'scan', imageBase64: base64, mediaType: validType });
 
     if (!res.success) throw new Error(res.error || 'Scan failed');
 
