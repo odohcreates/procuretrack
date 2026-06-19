@@ -238,7 +238,7 @@ const STATUSES = ['Submitted','Processing','Completed'];
 // Paste your deployed Apps Script /exec URL below so this editor connects
 // automatically. A locally-saved URL (via Connect box) always takes
 // priority over this default.
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbz5VpMTYBmB_vids1X_u311U-LCLu4yXpn_ONnG16a7Buy6MHOEdZyDdfCxZ9GEFYtB/exec';
+const DEFAULT_API_URL = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
 
 let API_URL = localStorage.getItem('procuretrack_api_url')
   || (DEFAULT_API_URL.startsWith('https://script.google.com') ? DEFAULT_API_URL : '');
@@ -529,52 +529,20 @@ async function runScan(dataUrl, mimeType) {
   const validType = ['image/jpeg','image/png','image/gif','image/webp'].includes(mimeType)
     ? mimeType : 'image/jpeg';
 
-  const prompt = `You are reading a paper procurement / purchase requisition form.
-Extract all available fields and return ONLY a JSON object with these exact keys:
-{
-  "originator": "",
-  "recipientEmail": "",
-  "dept": "",
-  "vendor": "",
-  "priority": "PO1",
-  "date": "YYYY-MM-DD",
-  "target": "YYYY-MM-DD",
-  "remarks": "",
-  "items": [
-    { "desc": "", "qty": 1, "unitPrice": 0 }
-  ]
-}
-Rules:
-- priority must be "PO1" or "PO2" only. Default to "PO1" if unclear.
-- All dates in YYYY-MM-DD format. Leave blank "" if not found.
-- items: extract every line item you can see. qty and unitPrice should be numbers (no currency symbols).
-- If a field is not visible, use an empty string "".
-- Return ONLY the JSON, no explanation, no markdown.`;
+  if (!API_URL) {
+    closeScan();
+    toast('Connect your Apps Script URL first before scanning.', 'err');
+    return;
+  }
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: validType, data: base64 } },
-            { type: 'text', text: prompt }
-          ]
-        }]
-      })
-    });
+    // Route through Apps Script — Gemini call happens server-side, key stays in Code.gs
+    const res = await api({ action: 'scan', imageBase64: base64, mediaType: validType });
 
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error?.message || 'API error');
+    if (!res.success) throw new Error(res.error || 'Scan failed');
 
     document.getElementById('scanStatus').textContent = 'Filling in fields…';
-    const raw = data.content.find(b => b.type === 'text')?.text || '';
-    const clean = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    const parsed = res.data;
 
     // Fill form fields
     if (parsed.originator)     document.getElementById('fOriginator').value     = parsed.originator;
