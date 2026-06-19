@@ -544,15 +544,14 @@ async function runScan(dataUrl, mimeType) {
   const validType = ['image/jpeg','image/png','image/gif','image/webp'].includes(mimeType)
     ? mimeType : 'image/jpeg';
 
-  if (!API_URL) {
-    closeScan();
-    toast('Connect your Apps Script URL first before scanning.', 'err');
-    return;
-  }
-
   try {
-    // Route through Apps Script via POST — Gemini call happens server-side, key stays in Code.gs
-    const res = await apiPost({ action: 'scan', imageBase64: base64, mediaType: validType });
+    // Call Vercel serverless function — API key is secure in Vercel env vars
+    const resp = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64, mediaType: validType })
+    });
+    const res = await resp.json();
 
     if (!res.success) throw new Error(res.error || 'Scan failed');
 
